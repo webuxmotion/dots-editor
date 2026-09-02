@@ -14,6 +14,13 @@ const mouse = { x: 0, y: 0, isDown: false };
 let mode = modes.DOTTED;
 let prevDot = null;
 
+let cropRect = {
+  x: 50,
+  y: 50,
+  width: 500,
+  height: 500,
+};
+
 function init() {
   const dpr = window.devicePixelRatio || 1;
   canvas.style.width = window.innerWidth + "px";
@@ -28,12 +35,14 @@ function init() {
 let prevTime = 0;
 
 function update() {}
-function draw() {}
+function draw(ctx) {
+  drawCropRect(ctx);
+}
 function loop(time) {
   const delta = (time - prevTime) / 1000;
 
   update();
-  draw();
+  draw(ctx);
 
   requestAnimationFrame(loop);
 }
@@ -104,6 +113,55 @@ container.addEventListener("click", (event) => {
     }
   }
 });
+
+const saveBtn = document.getElementById("crop-and-save");
+
+saveBtn.addEventListener("click", () => {
+  // Get the current display pixel ratio
+  const dpr = window.devicePixelRatio || 1;
+
+  const tempCanvas = document.createElement("canvas");
+  
+  // 1. Scale the temporary canvas size to match the high-res image data
+  tempCanvas.width = cropRect.width * dpr;
+  tempCanvas.height = cropRect.height * dpr;
+  const tempCtx = tempCanvas.getContext("2d");
+
+  // 2. Multiply ALL source coordinates by the dpr multiplier
+  tempCtx.drawImage(
+    canvas,
+    cropRect.x * dpr,      // Scaled X position
+    cropRect.y * dpr,      // Scaled Y position
+    cropRect.width * dpr,  // Scaled Source Width
+    cropRect.height * dpr, // Scaled Source Height
+    0,
+    0,
+    cropRect.width * dpr,  // Destination Width
+    cropRect.height * dpr  // Destination Height
+  );
+
+  const imageUrl = tempCanvas.toDataURL("image/png");
+
+  const downloadLink = document.createElement("a");
+  downloadLink.href = imageUrl;
+  downloadLink.download = "canvas-crop.png";
+
+  downloadLink.click();
+});
+
+
+function drawCropRect(ctx) {
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.rect(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
+  ctx.strokeStyle = "#007bff";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+
+  ctx.stroke();
+  ctx.restore();
+}
 
 window.addEventListener("resize", init);
 init();
