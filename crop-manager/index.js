@@ -1,35 +1,40 @@
 // crop-manager/index.js
 import ResizeHandle from "./ResizeHandle.js";
 import DragHandle from "./DragHandle.js";
-import Toolbar from "./Toolbar.js";
+import SizeLabel from "./SizeLabel.js"; // Import the new text label component
 
 export default class CropManager {
   constructor(canvas, drawingCanvas) {
     this.canvas = canvas;
     this.drawingCanvas = drawingCanvas;
     
-    // Explicitly define default box dimensions
-    const boxWidth = 500;
-    const boxHeight = 500;
+    // Explicit padding specifications
+    const paddingLeft = 100;
+    const paddingRight = 100;
+    const paddingTop = 200;
+    const paddingBottom = 100;
 
-    // Mathematically calculate screen centers dynamically on launch layout cycles
-    // (window size / 2) offsets to screen center, subtracting half the box sizes forces perfect centering alignment
+    // Dynamically compute bounds using window viewport dimensions and padding metrics
+    const initialWidth = window.innerWidth - paddingLeft - paddingRight;
+    const initialHeight = window.innerHeight - paddingTop - paddingBottom;
+
     this.cropRect = {
-      x: (window.innerWidth / 2) - (boxWidth / 2),
-      y: (window.innerHeight / 2) - (boxHeight / 2),
-      width: boxWidth,
-      height: boxHeight,
+      x: paddingLeft,               // Start exactly 100px from left screen margin
+      y: paddingTop,                // Start exactly 200px from top screen margin
+      width: Math.max(50, initialWidth),   // Safe clamp width boundaries
+      height: Math.max(50, initialHeight), // Safe clamp height boundaries
     };
 
     this.isDragging = false;
     this.dragOffset = { x: 0, y: 0 };
 
     // Instantiate modular sub-components smoothly
-    this.dragHandle = new DragHandle(30);
+    this.dragHandleSize = 30;
+    this.dragHandle = new DragHandle(this.dragHandleSize);
     this.resizeHandle = new ResizeHandle(15, 50);
     
-    // Pass the internal offscreen canvas manager layer directly into the engine handler
-    this.toolbar = new Toolbar(this.drawingCanvas);
+    // FIXED: Instantiate the new label manager instead of the old canvas Toolbar button
+    this.sizeLabel = new SizeLabel();
   }
 
   get isResizing() {
@@ -37,17 +42,12 @@ export default class CropManager {
   }
 
   checkHit(mouseX, mouseY) {
-    // 1. Check if user clicked the native canvas toolbar action button first
-    if (this.toolbar.checkHit(mouseX, mouseY, this.cropRect)) {
-      return true;
-    }
-
-    // 2. Delegate to the decoupled Resize handle interface
+    // 1. Delegate to the decoupled Resize handle interface
     if (this.resizeHandle.checkHit(mouseX, mouseY, this.cropRect)) {
       return true;
     }
 
-    // 3. Delegate to the decoupled Move Drag handle interface
+    // 2. Delegate to the decoupled Move Drag handle interface
     if (this.dragHandle.checkHit(mouseX, mouseY, this.cropRect)) {
       this.isDragging = true;
       this.dragOffset.x = mouseX - this.cropRect.x;
@@ -81,13 +81,15 @@ export default class CropManager {
     ctx.rect(this.cropRect.x, this.cropRect.y, this.cropRect.width, this.cropRect.height);
     ctx.strokeStyle = "#007bff";
     ctx.lineWidth = 2;
-    ctx.setLineDash([2, 5]);
+    ctx.setLineDash([2, 15]);
     ctx.stroke();
 
     // Composite separate child element interface overlays onto presentation thread
     this.dragHandle.draw(ctx, this.cropRect);
     this.resizeHandle.draw(ctx, this.cropRect);
-    this.toolbar.draw(ctx, this.cropRect); // Renders button directly on top grid canvas coordinate assets
+    
+    // FIXED: Draw the live text label next to the drag handle button
+    this.sizeLabel.draw(ctx, this.cropRect, this.dragHandleSize);
 
     ctx.restore();
   }

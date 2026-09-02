@@ -28,7 +28,7 @@ class DrawingApp {
 
     // 3. Connect User Interface Layer Wrappers
     new LayersUI(this.layers);
-    new ToolbarUI(this.drawer); // FIXED: Replaced initModeUI with our clean UI class instance
+    new ToolbarUI(this.drawer, this.layers, this.cropper);
     new ColorPicker("#color");
 
     this.initCanvasResize();
