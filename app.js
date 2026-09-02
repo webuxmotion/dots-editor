@@ -1,7 +1,13 @@
 import ColorPicker from "./ColorPicker.js";
+import CropManager from "./CropManager.js"; // Import the extracted class module
 
+// 1. Visible Canvas (Handles UI rendering & mouse events)
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+
+// 2. Offscreen Canvas (Saves and protects user drawings from frame-clears)
+const drawingCanvas = document.createElement("canvas");
+const dCtx = drawingCanvas.getContext("2d");
 
 const modes = {
   DOTTED: "DOTTED",
@@ -10,36 +16,53 @@ const modes = {
 
 let width, height;
 new ColorPicker("#color");
+
 const mouse = { x: 0, y: 0, isDown: false };
 let mode = modes.DOTTED;
 let prevDot = null;
 
-let cropRect = {
-  x: 50,
-  y: 50,
-  width: 500,
-  height: 500,
-};
+// Initialize the decoupled external crop coordinator component
+const cropper = new CropManager(canvas, drawingCanvas);
 
 function init() {
   const dpr = window.devicePixelRatio || 1;
+
+  // Size visible canvas
   canvas.style.width = window.innerWidth + "px";
   canvas.style.height = window.innerHeight + "px";
   canvas.width = window.innerWidth * dpr;
   canvas.height = window.innerHeight * dpr;
+
+  // Size backing drawing canvas identically
+  drawingCanvas.width = window.innerWidth * dpr;
+  drawingCanvas.height = window.innerHeight * dpr;
+
   width = window.innerWidth;
   height = window.innerHeight;
+
+  // Scale contexts globally for sharp retina screens
   ctx.scale(dpr, dpr);
+  dCtx.scale(dpr, dpr);
 }
 
 let prevTime = 0;
 
 function update() {}
+
 function draw(ctx) {
-  drawCropRect(ctx);
+  // Clear the active visible application presentation screen viewport frame
+  ctx.clearRect(0, 0, width, height);
+
+  // 1. Render the saved artwork layer underneath
+  ctx.drawImage(drawingCanvas, 0, 0, width, height);
+
+  // 2. Call the external module to overlay the active selector layout lines
+  cropper.draw(ctx);
 }
+
 function loop(time) {
   const delta = (time - prevTime) / 1000;
+  prevTime = time;
 
   update();
   draw(ctx);
@@ -47,44 +70,58 @@ function loop(time) {
   requestAnimationFrame(loop);
 }
 
+canvas.addEventListener("mousedown", (event) => {
+  // Delegate hit testing calculations out to class layer mechanics
+  const interceptedByUI = cropper.checkHit(mouse.x, mouse.y);
+  
+  if (!interceptedByUI) {
+    mouse.isDown = true;
+  }
+});
+
 canvas.addEventListener("mousemove", (event) => {
   const rect = canvas.getBoundingClientRect();
   mouse.x = event.clientX - rect.left;
   mouse.y = event.clientY - rect.top;
 
+  // Update selection box movement coordinates inside module
+  if (cropper.isDragging) {
+    cropper.handleMove(mouse.x, mouse.y);
+    return;
+  }
+
+  // Handle User Drawing Input (Renders strictly directly to persistent background canvas)
   if (mouse.isDown) {
-    ctx.fillStyle = "white";
-    ctx.strokeStyle = "white";
+    dCtx.fillStyle = "white";
+    dCtx.strokeStyle = "white";
+    dCtx.lineWidth = 2;
+
     if (mode == modes.DOTTED) {
-      ctx.beginPath();
-      ctx.arc(mouse.x, mouse.y, 2, 0, Math.PI * 2, 0);
-      ctx.fill();
+      dCtx.beginPath();
+      dCtx.arc(mouse.x, mouse.y, 2, 0, Math.PI * 2, 0);
+      dCtx.fill();
     } else if (mode == modes.LINED) {
-      ctx.beginPath();
+      dCtx.beginPath();
       if (prevDot) {
-        ctx.moveTo(prevDot.x, prevDot.y);
-        ctx.lineTo(mouse.x, mouse.y);
-        ctx.stroke();
+        dCtx.moveTo(prevDot.x, prevDot.y);
+        dCtx.lineTo(mouse.x, mouse.y);
+        dCtx.stroke();
         prevDot.x = mouse.x;
         prevDot.y = mouse.y;
       } else {
-        prevDot = {};
-        prevDot.x = mouse.x;
-        prevDot.y = mouse.y;
+        prevDot = { x: mouse.x, y: mouse.y };
       }
     }
   }
 });
 
-canvas.addEventListener("mousedown", () => {
-  mouse.isDown = true;
-});
-
 canvas.addEventListener("mouseup", () => {
   mouse.isDown = false;
+  cropper.stopDragging(); // Clear drag state inside module
   prevDot = null;
 });
 
+// UI Mode handling selectors
 const container = document.getElementById("mode-container");
 const buttons = container.querySelectorAll("button");
 buttons.forEach((button) => {
@@ -113,55 +150,6 @@ container.addEventListener("click", (event) => {
     }
   }
 });
-
-const saveBtn = document.getElementById("crop-and-save");
-
-saveBtn.addEventListener("click", () => {
-  // Get the current display pixel ratio
-  const dpr = window.devicePixelRatio || 1;
-
-  const tempCanvas = document.createElement("canvas");
-  
-  // 1. Scale the temporary canvas size to match the high-res image data
-  tempCanvas.width = cropRect.width * dpr;
-  tempCanvas.height = cropRect.height * dpr;
-  const tempCtx = tempCanvas.getContext("2d");
-
-  // 2. Multiply ALL source coordinates by the dpr multiplier
-  tempCtx.drawImage(
-    canvas,
-    cropRect.x * dpr,      // Scaled X position
-    cropRect.y * dpr,      // Scaled Y position
-    cropRect.width * dpr,  // Scaled Source Width
-    cropRect.height * dpr, // Scaled Source Height
-    0,
-    0,
-    cropRect.width * dpr,  // Destination Width
-    cropRect.height * dpr  // Destination Height
-  );
-
-  const imageUrl = tempCanvas.toDataURL("image/png");
-
-  const downloadLink = document.createElement("a");
-  downloadLink.href = imageUrl;
-  downloadLink.download = "canvas-crop.png";
-
-  downloadLink.click();
-});
-
-
-function drawCropRect(ctx) {
-  ctx.save();
-
-  ctx.beginPath();
-  ctx.rect(cropRect.x, cropRect.y, cropRect.width, cropRect.height);
-  ctx.strokeStyle = "#007bff";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-
-  ctx.stroke();
-  ctx.restore();
-}
 
 window.addEventListener("resize", init);
 init();
