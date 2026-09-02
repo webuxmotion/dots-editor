@@ -18,6 +18,151 @@ button.is-active {
   border-radius: 4px;
 }
 
+/* ==================================================================
+   FLOATING CORE CONTROLS TOOLBAR (Figma Style Minimalist Glass)
+   ================================================================== */
+.buttons {
+  position: absolute;
+  top: 20px;   /* FIXED: Snaps to the same upper ceiling height line as layers panel */
+  left: 20px;  /* FIXED: Clean margin offset spacing away from left window edge */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(20, 20, 20, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  z-index: 100;
+}
+
+/* Structural grouping containers inside toolbar segments */
+.buttons > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Add a clean vertical divider line between toolbar options */
+.buttons > span:not(:last-child)::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-left: 8px;
+  margin-right: 4px;
+}
+
+/* ==================================================================
+   UNIVERSAL INTERACTIVE BUTTON STYLING
+   ================================================================== */
+.buttons button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 6px 12px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.buttons button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+/* Highlighting active operational states cleanly without jagged outlines */
+.buttons button.is-active {
+  background: rgba(0, 123, 255, 0.15);
+  color: #007bff;
+  font-weight: 600;
+  outline: none; /* Removed the old thick blue border-radius outline loop */
+  border: 1px solid rgba(0, 123, 255, 0.3);
+}
+
+/* Accent highlight exclusively targeting your main Save Action target link */
+#crop-and-save {
+  background: #007bff;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+#crop-and-save:hover {
+  background: #0069d9;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* ==================================================================
+   BACKGROUND CONFIGURATOR TOOL (Minimalist pill layout inline)
+   ================================================================== */
+.color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px !important;
+  padding: 0 6px;
+  cursor: pointer;
+  height: 28px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.color-picker:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.color-picker label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  user-select: none;
+  cursor: pointer;
+}
+
+.color-picker:hover label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Circular background picker swatch frame matching layer styles */
+.color-picker input[type="color"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.color-picker input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+
 /* Minimalistic Layers Dock */
 .layers-minimal {
   position: absolute;

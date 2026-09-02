@@ -8,11 +8,17 @@ export default class CropManager {
     this.canvas = canvas;
     this.drawingCanvas = drawingCanvas;
     
+    // Explicitly define default box dimensions
+    const boxWidth = 500;
+    const boxHeight = 500;
+
+    // Mathematically calculate screen centers dynamically on launch layout cycles
+    // (window size / 2) offsets to screen center, subtracting half the box sizes forces perfect centering alignment
     this.cropRect = {
-      x: 50,
-      y: 50,
-      width: 500,
-      height: 500,
+      x: (window.innerWidth / 2) - (boxWidth / 2),
+      y: (window.innerHeight / 2) - (boxHeight / 2),
+      width: boxWidth,
+      height: boxHeight,
     };
 
     this.isDragging = false;

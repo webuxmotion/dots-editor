@@ -65,17 +65,19 @@ export default class LayerManager {
     this.baseHeight = height;
   }
 
-  // Redraws all vector lines from scratch every single frame
-  compositeLayers(targetCtx) {
+  // FIXED: Added a scale parameter defaulting to 1 to ensure lines scale proportionally during high-res crops
+  compositeLayers(targetCtx, scale = 1) {
     // Traverse backwards to preserve stack order (bottom layers draw first)
     for (let i = this.layers.length - 1; i >= 0; i--) {
       const layer = this.layers[i];
       if (!layer.visible) continue;
 
-      // Apply the layer color dynamically to ALL its lines
+      // Adjust the brush thickness and dot radius relative to the export scale multiplier
+      const scaledWidth = 2 * scale;
+
       targetCtx.fillStyle = layer.color;
       targetCtx.strokeStyle = layer.color;
-      targetCtx.lineWidth = 2;
+      targetCtx.lineWidth = scaledWidth;
       targetCtx.lineCap = "round";
       targetCtx.lineJoin = "round";
 
@@ -85,12 +87,14 @@ export default class LayerManager {
         if (stroke.mode === "DOTTED") {
           stroke.points.forEach(pt => {
             targetCtx.beginPath();
-            targetCtx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+            // Scale the dot radius proportionally
+            targetCtx.arc(pt.x, pt.y, scaledWidth, 0, Math.PI * 2);
             targetCtx.fill();
           });
         } 
         else if (stroke.mode === "LINED") {
           targetCtx.beginPath();
+          // FIXED: Corrected mapping syntax point references
           targetCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
           for (let p = 1; p < stroke.points.length; p++) {
             targetCtx.lineTo(stroke.points[p].x, stroke.points[p].y);
