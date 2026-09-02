@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dots-editor</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="buttons">
+      <span class="color-picker">
+        <input type="color" id="color" name="body" value="#121314" />
+        <label for="color">Background</label>
+      </span>
+      <span id="mode-container">
+        <button id="DOTTED">Dotted</button>
+        <button id="LINED">Lined</button>
+      </span>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

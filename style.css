@@ -1,0 +1,19 @@
+body {
+  margin: 0;
+  color: white;
+}
+
+canvas {
+  display: block;
+  background-color: #121314;
+}
+
+.buttons {
+  position: absolute;
+}
+
+button.is-active {
+  /* thickness | style | color */
+  outline: 3px solid #007bff; 
+  border-radius: 4px;
+}
