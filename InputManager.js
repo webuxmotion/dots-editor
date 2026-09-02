@@ -3,11 +3,12 @@ export default class InputManager {
   constructor(canvasElement) {
     this.canvas = canvasElement;
     this.mouse = { x: 0, y: 0, isDown: false };
-    
+
     this.onDown = null;
     this.onMove = null;
     this.onUp = null;
-    this.onPan = null; // NEW: Hook for trackpad panning gestures
+    this.onPan = null;
+    this.onZoom = null; // NEW: Hook for trackpad pinch-to-zoom / Ctrl+Scroll gestures
 
     this.bindEvents();
   }
@@ -29,17 +30,32 @@ export default class InputManager {
       if (this.onUp) this.onUp(this.mouse);
     });
 
-    // NEW: Capture two-finger trackpad movement swipes
-    this.canvas.addEventListener("wheel", (e) => {
-      e.preventDefault(); // Stop the browser page from scrolling up/down
-      
-      if (this.onPan) {
-        this.onPan({
-          deltaX: e.deltaX,
-          deltaY: e.deltaY
-        });
-      }
-    }, { passive: false }); // Explicitly allow preventDefault()
+    // Inside InputManager.js -> bindEvents() method:
+
+    // Capture trackpad gestures and mouse wheel movements uniform actions
+    this.canvas.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault(); // Secure layout locks to prevent browser viewport shifts
+
+        // UPDATED: Triggers zoom if EITHER Control OR Command/Meta key is pressed
+        const isZoomModifier = e.ctrlKey || e.metaKey;
+
+        if (isZoomModifier && this.onZoom) {
+          this.onZoom({
+            deltaY: e.deltaY,
+            mouseX: this.mouse.x,
+            mouseY: this.mouse.y,
+          });
+        } else if (!isZoomModifier && this.onPan) {
+          this.onPan({
+            deltaX: e.deltaX,
+            deltaY: e.deltaY,
+          });
+        }
+      },
+      { passive: false },
+    );
   }
 
   updateCoordinates(event) {

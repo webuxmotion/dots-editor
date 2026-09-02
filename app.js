@@ -3,7 +3,7 @@ import ColorPicker from "./ColorPicker.js";
 import CropManager from "./crop-manager/index.js";
 import DrawEngine from "./DrawEngine.js";
 import InputManager from "./InputManager.js";
-import LayerManager from "./LayerManager.js"; // Import layers code module
+import LayerManager from "./LayerManager.js";
 
 class DrawingApp {
   constructor() {
@@ -11,22 +11,21 @@ class DrawingApp {
     this.height = window.innerHeight;
     this.prevTime = 0;
 
-    // 1. Setup Visible Canvas Viewport Target
+    // Viewport camera states (Figma navigation space)
+    this.pan = { x: 0, y: 0 };
+    this.zoom = 1.0; // NEW: Tracks current scale layout level
+    this.minZoom = 0.1; // Max out-zoom limits (10%)
+    this.maxZoom = 10.0; // Max in-zoom limits (1000%)
+
     this.canvas = document.getElementById("canvas");
     this.ctx = this.canvas.getContext("2d");
 
-    // 2. Instantiate Decoupled Layer Manager (Replaces single drawingCanvas)
     this.layers = new LayerManager(this.width, this.height);
-
-    // 3. Instantiate Submodules
     this.drawer = new DrawEngine();
     this.input = new InputManager(this.canvas);
-
-    // Pass 'this' or composite function reference down to crop manager so it can read composite data arrays
     this.cropper = new CropManager(this.canvas, this.layers);
     new ColorPicker("#color");
 
-    // 4. Run System Initializers
     this.initCanvasResize();
     this.setupInputInterceptors();
     this.initModeUI();
@@ -46,36 +45,49 @@ class DrawingApp {
     this.canvas.height = this.height * dpr;
 
     this.ctx.scale(dpr, dpr);
-
-    // Resize layers structure memory maps
     this.layers.resizeAllLayers(this.width, this.height);
+  }
+
+  // UPDATED: Adjust coordinate spaces to handle zooming variations
+  getVirtualMouse(screenMouse) {
+    return {
+      x: (screenMouse.x - this.pan.x) / this.zoom,
+      y: (screenMouse.y - this.pan.y) / this.zoom,
+    };
   }
 
   setupInputInterceptors() {
     window.addEventListener("resize", () => this.initCanvasResize());
 
-    this.input.onDown = (mouseState) => {
-      const hitUINode = this.cropper.checkHit(mouseState.x, mouseState.y);
+    this.input.onDown = (screenMouse) => {
+      const virtualMouse = this.getVirtualMouse(screenMouse);
+
+      const hitUINode = this.cropper.checkHit(virtualMouse.x, virtualMouse.y);
       if (!hitUINode) {
         const activeLayer = this.layers.getActiveLayer();
         if (activeLayer && activeLayer.visible) {
-          // Initialize vector coordinate tracking group
-          this.drawer.startStroke(activeLayer, mouseState);
+          this.drawer.brushColor = activeLayer.color;
+          this.drawer.startStroke(activeLayer, virtualMouse);
         }
       }
     };
 
-    this.input.onMove = (mouseState) => {
+    this.input.onMove = (screenMouse) => {
+      // Convert standard viewport values into active virtual zoom coordinates
+      const virtualMouse = this.getVirtualMouse(screenMouse);
+
+      // If manipulating crop handles, run transformation calculations
       if (this.cropper.isDragging || this.cropper.isResizing) {
-        this.cropper.handleMove(mouseState.x, mouseState.y);
+        this.cropper.handleMove(virtualMouse.x, virtualMouse.y);
         return;
       }
 
-      if (mouseState.isDown) {
+      // Handle painting path extensions relative to current magnification depths
+      if (screenMouse.isDown) {
         const activeLayer = this.layers.getActiveLayer();
         if (activeLayer && activeLayer.visible) {
-          // Record current move coordinates
-          this.drawer.continueStroke(mouseState);
+          this.drawer.brushColor = activeLayer.color;
+          this.drawer.continueStroke(virtualMouse);
         }
       }
     };
@@ -84,16 +96,48 @@ class DrawingApp {
       this.cropper.stopDragging();
       this.drawer.resetStroke();
     };
+
+    this.input.onPan = (deltas) => {
+      this.pan.x -= deltas.deltaX;
+      this.pan.y -= deltas.deltaY;
+    };
+
+    // NEW: Handles zoom transformations centered precisely on the user's cursor
+    this.input.onZoom = (zoomData) => {
+      const zoomFactor = 1.02; // Scaling speed step configuration variable
+      const oldZoom = this.zoom;
+
+      // Adjust zoom level based on wheel rotation direction
+      if (zoomData.deltaY < 0) {
+        this.zoom = Math.min(this.maxZoom, this.zoom * zoomFactor);
+      } else {
+        this.zoom = Math.max(this.minZoom, this.zoom / zoomFactor);
+      }
+
+      // FIGMA ZOOM ANCHOR MATH MATH FUNCTIONS:
+      // Adjust panning coordinates so the pixel under the mouse cursor stays stationary
+      this.pan.x =
+        zoomData.mouseX -
+        (zoomData.mouseX - this.pan.x) * (this.zoom / oldZoom);
+      this.pan.y =
+        zoomData.mouseY -
+        (zoomData.mouseY - this.pan.y) * (this.zoom / oldZoom);
+    };
   }
 
   draw() {
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    // Flatten and render all active stacked visibility layers underneath the UI
-    this.layers.compositeLayers(this.ctx, this.width, this.height);
+    this.ctx.save();
 
-    // Overlay Crop selectors on top
+    // UPDATED: Composite layout transforms uniformly for camera updates
+    this.ctx.translate(this.pan.x, this.pan.y);
+    this.ctx.scale(this.zoom, this.zoom); // Dynamic matrix scaling applied directly here
+
+    this.layers.compositeLayers(this.ctx);
     this.cropper.draw(this.ctx);
+
+    this.ctx.restore();
   }
 
   loop(time) {
@@ -124,87 +168,98 @@ class DrawingApp {
 
     this.layers.onLayerChange = (layerArray, activeIndex) => {
       if (!listContainer) return;
-
-      // 1. Get all current list elements already existing in the DOM
       const currentItems = listContainer.querySelectorAll(".layer-item");
 
-      // 2. If the count matches, do NOT overwrite innerHTML! Just patch the state properties.
+      // Patch DOM parameters smoothly if length checks match
       if (currentItems.length === layerArray.length) {
         layerArray.forEach((layer, idx) => {
           const li = currentItems[idx];
+          if (idx === activeIndex) li.classList.add("is-active");
+          else li.classList.remove("is-active");
 
-          // Dynamic class syncing for the active layer highlights
-          if (idx === activeIndex) {
-            li.classList.add("is-active");
-          } else {
-            li.classList.remove("is-active");
+          const toggleBtn = li.querySelector(".layer-toggle");
+          if (toggleBtn) {
+            toggleBtn.innerHTML = layer.visible ? "👁️" : "👁️‍🗨️";
+            if (!layer.visible) toggleBtn.classList.add("is-hidden");
+            else toggleBtn.classList.remove("is-hidden");
           }
 
-          // Sync the eye icon status
-          const toggleBtn = li.querySelector(".layer-toggle");
-          if (toggleBtn) toggleBtn.innerHTML = layer.visible ? "👁️" : "🙈";
-
-          // Sync the color box value ONLY if the user isn't currently using it
           const colorInput = li.querySelector(".layer-color-input");
           if (colorInput && document.activeElement !== colorInput) {
             colorInput.value = layer.color;
+            colorInput.parentElement.style.backgroundColor = layer.color;
           }
         });
-        return; // Exit smoothly. The inputs are preserved, keeping the color picker open!
+        return;
       }
 
-      // 3. Fallback: Only rebuild the entire list when a layer is added or deleted
+      // Rebuild configuration states if items count varies
       listContainer.innerHTML = "";
 
       layerArray.forEach((layer, idx) => {
         const li = document.createElement("li");
         li.className = `layer-item ${idx === activeIndex ? "is-active" : ""}`;
+        li.title = layer.name; // Keep name string readable inside browser tooltips
 
-        // Create Layer Color Picker Element
+        // Select layer row on click
+        li.addEventListener("click", () => this.layers.setActiveLayer(idx));
+
+        // 1. Color Picker Circle Container
+        const colorWrapper = document.createElement("div");
+        colorWrapper.className = "color-picker-wrapper";
+        colorWrapper.style.backgroundColor = layer.color;
+
         const colorInput = document.createElement("input");
         colorInput.type = "color";
         colorInput.className = "layer-color-input";
         colorInput.value = layer.color;
 
-        // Fires on every single mouse slide drag move across picker map fields
         colorInput.addEventListener("input", (e) => {
+          colorWrapper.style.backgroundColor = e.target.value;
           this.layers.setLayerColor(idx, e.target.value);
         });
-
-        // Stop event from bubbling up to change active layers while clicking color swatches
         colorInput.addEventListener("mousedown", (e) => e.stopPropagation());
+        colorInput.addEventListener("click", (e) => e.stopPropagation());
 
-        // Create Name description element
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "layer-name";
-        nameSpan.textContent = layer.name;
-        nameSpan.addEventListener("click", () =>
-          this.layers.setActiveLayer(idx),
-        );
+        colorWrapper.appendChild(colorInput);
 
-        // Create Visibility Toggle Button
+        // 2. Layer Index Number Badge
+        const badge = document.createElement("div");
+        badge.className = "layer-badge";
+        // Display logical position (e.g. total count minus index position values)
+        badge.textContent = `L${layerArray.length - idx}`;
+
+        // 3. Floating Side Action Bar Container
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "layer-actions";
+
+        // Visibility Toggle
         const toggleBtn = document.createElement("button");
-        toggleBtn.className = "layer-toggle";
-        toggleBtn.innerHTML = layer.visible ? "👁️" : "🙈";
+        toggleBtn.className = `layer-toggle ${!layer.visible ? "is-hidden" : ""}`;
+        toggleBtn.innerHTML = layer.visible ? "👁️" : "👁️‍🗨️";
+        toggleBtn.title = "Toggle Visibility";
         toggleBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           this.layers.toggleVisibility(idx);
         });
 
-        // Create Delete Layer Button
+        // Delete Trash Button
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "layer-delete";
-        deleteBtn.innerHTML = "🗑️";
+        deleteBtn.innerHTML = "✕";
+        deleteBtn.title = "Delete Layer";
         deleteBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           this.layers.removeLayer(idx);
         });
 
-        // Append fragments
-        li.appendChild(colorInput);
-        li.appendChild(nameSpan);
-        li.appendChild(toggleBtn);
-        if (layerArray.length > 1) li.appendChild(deleteBtn);
+        actionsDiv.appendChild(toggleBtn);
+        if (layerArray.length > 1) actionsDiv.appendChild(deleteBtn);
+
+        // Append everything together into row fragment references
+        li.appendChild(colorWrapper);
+        li.appendChild(badge);
+        li.appendChild(actionsDiv);
 
         listContainer.appendChild(li);
       });
