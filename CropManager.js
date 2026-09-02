@@ -11,7 +11,11 @@ export default class CropManager {
     };
 
     this.dragBoxSize = 30;
+    this.resizeHandleSize = 15; // Size of the bottom-right interactive handle node
+    this.minSize = 50;          // Prevent collapsing the box to 0 or negative sizes
+
     this.isDragging = false;
+    this.isResizing = false;    // New tracking state for resizing calculations
     this.dragOffset = { x: 0, y: 0 };
 
     // Initialize drag handle icon asset
@@ -21,8 +25,23 @@ export default class CropManager {
     this.setupDownloadButton();
   }
 
-  // Checks if a given coordinate hits the drag handle area
+  // Checks if a given coordinate hits the drag handle OR the resize handle area
   checkHit(mouseX, mouseY) {
+    // 1. Check Bottom-Right Resize Handle Hit
+    const resizeX = this.cropRect.x + this.cropRect.width;
+    const resizeY = this.cropRect.y + this.cropRect.height;
+
+    if (
+      mouseX >= resizeX - this.resizeHandleSize &&
+      mouseX <= resizeX + this.resizeHandleSize &&
+      mouseY >= resizeY - this.resizeHandleSize &&
+      mouseY <= resizeY + this.resizeHandleSize
+    ) {
+      this.isResizing = true;
+      return true; // Intercepted by Resize Handle
+    }
+
+    // 2. Check Top-Left Drag Move Handle Hit
     const dragBoxX = this.cropRect.x;
     const dragBoxY = this.cropRect.y - this.dragBoxSize;
 
@@ -35,25 +54,36 @@ export default class CropManager {
       this.isDragging = true;
       this.dragOffset.x = mouseX - this.cropRect.x;
       this.dragOffset.y = mouseY - this.cropRect.y;
-      return true; // Click intercepted by UI handle
+      return true; // Intercepted by Drag Handle
     }
+
     return false;
   }
 
-  // Updates box positions during mouse movements
+  // Updates positions or scaling dimensions during mouse movements
   handleMove(mouseX, mouseY) {
     if (this.isDragging) {
       this.cropRect.x = mouseX - this.dragOffset.x;
       this.cropRect.y = mouseY - this.dragOffset.y;
+    } 
+    else if (this.isResizing) {
+      // New Width/Height is calculated based on current mouse coordinate minus current box origin point
+      let newWidth = mouseX - this.cropRect.x;
+      let newHeight = mouseY - this.cropRect.y;
+
+      // Restrict resizing below minimum limits to prevent inversions
+      this.cropRect.width = Math.max(this.minSize, newWidth);
+      this.cropRect.height = Math.max(this.minSize, newHeight);
     }
   }
 
-  // Releases drag states
+  // Releases all interactive tracking states
   stopDragging() {
     this.isDragging = false;
+    this.isResizing = false; // Reset resize marker
   }
 
-  // Renders the dashed box boundary and icon overlay
+  // Renders the dashed box boundary, drag handle, and bottom-right resize node
   draw(ctx) {
     ctx.save();
 
@@ -66,13 +96,13 @@ export default class CropManager {
     ctx.setLineDash([6, 4]);
     ctx.stroke();
 
-    // 2. Build button node container
+    // 2. Build Top-Left Move button node container
     const dragBoxX = this.cropRect.x;
     const dragBoxY = this.cropRect.y - this.dragBoxSize;
     ctx.setLineDash([]);
     ctx.fillRect(dragBoxX, dragBoxY, this.dragBoxSize, this.dragBoxSize);
 
-    // 3. Render PNG icon asset safely
+    // 3. Render PNG icon asset safely inside move handle
     if (this.dragIcon.complete && this.dragIcon.naturalWidth !== 0) {
       ctx.drawImage(
         this.dragIcon,
@@ -82,6 +112,29 @@ export default class CropManager {
         this.dragBoxSize - 8
       );
     }
+
+    // 4. Build Bottom-Right Resize Handle node indicator
+    const resizeX = this.cropRect.x + this.cropRect.width;
+    const resizeY = this.cropRect.y + this.cropRect.height;
+    
+    ctx.beginPath();
+    // Centered anchor node block over the exact point vertex line intersection
+    ctx.fillRect(
+      resizeX - this.resizeHandleSize / 2, 
+      resizeY - this.resizeHandleSize / 2, 
+      this.resizeHandleSize, 
+      this.resizeHandleSize
+    );
+    
+    // Add white inner accent border trim to distinguish it clearly as an accent handle
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+      resizeX - this.resizeHandleSize / 2 + 2, 
+      resizeY - this.resizeHandleSize / 2 + 2, 
+      this.resizeHandleSize - 4, 
+      this.resizeHandleSize - 4
+    );
 
     ctx.restore();
   }
@@ -99,7 +152,7 @@ export default class CropManager {
       tempCanvas.height = this.cropRect.height * dpr;
       const tempCtx = tempCanvas.getContext("2d");
 
-      // Harvest image slice exclusively from internal vector memory backing layer
+      // Harvest image slice exclusively from internal vector memory backing layer using active size parameters
       tempCtx.drawImage(
         this.drawingCanvas,
         this.cropRect.x * dpr,

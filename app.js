@@ -1,156 +1,118 @@
+// app.js
 import ColorPicker from "./ColorPicker.js";
-import CropManager from "./CropManager.js"; // Import the extracted class module
+import CropManager from "./crop-manager/index.js";
+import DrawEngine from "./DrawEngine.js";
+import InputManager from "./InputManager.js";
 
-// 1. Visible Canvas (Handles UI rendering & mouse events)
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+class DrawingApp {
+  constructor() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.prevTime = 0;
 
-// 2. Offscreen Canvas (Saves and protects user drawings from frame-clears)
-const drawingCanvas = document.createElement("canvas");
-const dCtx = drawingCanvas.getContext("2d");
+    // 1. Structural Dom Element References
+    this.canvas = document.getElementById("canvas");
+    this.ctx = this.canvas.getContext("2d");
 
-const modes = {
-  DOTTED: "DOTTED",
-  LINED: "LINED",
-};
+    // 2. Separate Offscreen Graphic Buffers
+    this.drawingCanvas = document.createElement("canvas");
+    this.dCtx = this.drawingCanvas.getContext("2d");
 
-let width, height;
-new ColorPicker("#color");
+    // 3. Instantiate Specialized Isolated Submodules
+    this.drawer = new DrawEngine(this.dCtx);
+    this.input = new InputManager(this.canvas);
+    this.cropper = new CropManager(this.canvas, this.drawingCanvas);
+    new ColorPicker("#color");
 
-const mouse = { x: 0, y: 0, isDown: false };
-let mode = modes.DOTTED;
-let prevDot = null;
-
-// Initialize the decoupled external crop coordinator component
-const cropper = new CropManager(canvas, drawingCanvas);
-
-function init() {
-  const dpr = window.devicePixelRatio || 1;
-
-  // Size visible canvas
-  canvas.style.width = window.innerWidth + "px";
-  canvas.style.height = window.innerHeight + "px";
-  canvas.width = window.innerWidth * dpr;
-  canvas.height = window.innerHeight * dpr;
-
-  // Size backing drawing canvas identically
-  drawingCanvas.width = window.innerWidth * dpr;
-  drawingCanvas.height = window.innerHeight * dpr;
-
-  width = window.innerWidth;
-  height = window.innerHeight;
-
-  // Scale contexts globally for sharp retina screens
-  ctx.scale(dpr, dpr);
-  dCtx.scale(dpr, dpr);
-}
-
-let prevTime = 0;
-
-function update() {}
-
-function draw(ctx) {
-  // Clear the active visible application presentation screen viewport frame
-  ctx.clearRect(0, 0, width, height);
-
-  // 1. Render the saved artwork layer underneath
-  ctx.drawImage(drawingCanvas, 0, 0, width, height);
-
-  // 2. Call the external module to overlay the active selector layout lines
-  cropper.draw(ctx);
-}
-
-function loop(time) {
-  const delta = (time - prevTime) / 1000;
-  prevTime = time;
-
-  update();
-  draw(ctx);
-
-  requestAnimationFrame(loop);
-}
-
-canvas.addEventListener("mousedown", (event) => {
-  // Delegate hit testing calculations out to class layer mechanics
-  const interceptedByUI = cropper.checkHit(mouse.x, mouse.y);
-  
-  if (!interceptedByUI) {
-    mouse.isDown = true;
-  }
-});
-
-canvas.addEventListener("mousemove", (event) => {
-  const rect = canvas.getBoundingClientRect();
-  mouse.x = event.clientX - rect.left;
-  mouse.y = event.clientY - rect.top;
-
-  // Update selection box movement coordinates inside module
-  if (cropper.isDragging) {
-    cropper.handleMove(mouse.x, mouse.y);
-    return;
+    // 4. Initialize Core Engine Systems
+    this.initCanvasResize();
+    this.setupInputInterceptors();
+    this.initModeUI();
+    
+    // 5. Fire Frame Updates Animation Loop
+    requestAnimationFrame((time) => this.loop(time));
   }
 
-  // Handle User Drawing Input (Renders strictly directly to persistent background canvas)
-  if (mouse.isDown) {
-    dCtx.fillStyle = "white";
-    dCtx.strokeStyle = "white";
-    dCtx.lineWidth = 2;
+  initCanvasResize() {
+    const dpr = window.devicePixelRatio || 1;
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
 
-    if (mode == modes.DOTTED) {
-      dCtx.beginPath();
-      dCtx.arc(mouse.x, mouse.y, 2, 0, Math.PI * 2, 0);
-      dCtx.fill();
-    } else if (mode == modes.LINED) {
-      dCtx.beginPath();
-      if (prevDot) {
-        dCtx.moveTo(prevDot.x, prevDot.y);
-        dCtx.lineTo(mouse.x, mouse.y);
-        dCtx.stroke();
-        prevDot.x = mouse.x;
-        prevDot.y = mouse.y;
-      } else {
-        prevDot = { x: mouse.x, y: mouse.y };
+    this.canvas.style.width = `${this.width}px`;
+    this.canvas.style.height = `${this.height}px`;
+
+    this.canvas.width = this.width * dpr;
+    this.canvas.height = this.height * dpr;
+    this.drawingCanvas.width = this.width * dpr;
+    this.drawingCanvas.height = this.height * dpr;
+
+    this.ctx.scale(dpr, dpr);
+    this.dCtx.scale(dpr, dpr);
+  }
+
+  // Hook input manager callback streams cleanly into workflow systems
+  setupInputInterceptors() {
+    window.addEventListener("resize", () => this.initCanvasResize());
+
+    this.input.onDown = (mouseState) => {
+      // Hit testing delegated completely to the crop folder manager
+      const hitUINode = this.cropper.checkHit(mouseState.x, mouseState.y);
+      if (!hitUINode) {
+        this.drawer.executeStroke(mouseState); // Draw immediate dot if click didn't land on UI handles
       }
-    }
+    };
+
+    this.input.onMove = (mouseState) => {
+      if (this.cropper.isDragging || this.cropper.isResizing) {
+        this.cropper.handleMove(mouseState.x, mouseState.y);
+        return;
+      }
+
+      if (mouseState.isDown) {
+        this.drawer.executeStroke(mouseState);
+      }
+    };
+
+    this.input.onUp = () => {
+      this.cropper.stopDragging();
+      this.drawer.resetStroke(); // Clear line vector coordinate trace variables safely
+    };
   }
-});
 
-canvas.addEventListener("mouseup", () => {
-  mouse.isDown = false;
-  cropper.stopDragging(); // Clear drag state inside module
-  prevDot = null;
-});
+  initModeUI() {
+    const container = document.getElementById("mode-container");
+    if (!container) return;
 
-// UI Mode handling selectors
-const container = document.getElementById("mode-container");
-const buttons = container.querySelectorAll("button");
-buttons.forEach((button) => {
-  const bMode = button.id;
-  if (bMode == mode) {
-    button.classList.add("is-active");
-  }
-});
-
-container.addEventListener("click", (event) => {
-  const buttons = container.querySelectorAll("button");
-
-  if (event.target.tagName === "BUTTON") {
-    const bMode = event.target.id;
-
-    buttons.forEach((button) => {
-      button.classList.remove("is-active");
+    const buttons = container.querySelectorAll("button");
+    buttons.forEach((btn) => {
+      if (btn.id === this.drawer.currentMode) btn.classList.add("is-active");
     });
 
-    if (bMode === modes.DOTTED) {
-      mode = modes.DOTTED;
-      event.target.classList.add("is-active");
-    } else if (bMode === modes.LINED) {
-      mode = modes.LINED;
-      event.target.classList.add("is-active");
-    }
-  }
-});
+    container.addEventListener("click", (e) => {
+      if (e.target.tagName !== "BUTTON") return;
 
-window.addEventListener("resize", init);
-init();
-loop(performance.now());
+      buttons.forEach((btn) => btn.classList.remove("is-active"));
+      
+      const selectedId = e.target.id;
+      this.drawer.setMode(selectedId);
+      e.target.classList.add("is-active");
+    });
+  }
+
+  draw() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+    this.ctx.drawImage(this.drawingCanvas, 0, 0, this.width, this.height);
+    this.cropper.draw(this.ctx);
+  }
+
+  loop(time) {
+    const delta = (time - this.prevTime) / 1000;
+    this.prevTime = time;
+
+    this.draw();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+}
+
+// Spin up app directly
+new DrawingApp();
