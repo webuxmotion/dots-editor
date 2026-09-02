@@ -1,53 +1,44 @@
 // DrawEngine.js
 export default class DrawEngine {
-  constructor(ctx) {
-    this.ctx = ctx;
+  constructor() {
     this.modes = {
       DOTTED: "DOTTED",
       LINED: "LINED",
     };
     this.currentMode = this.modes.DOTTED;
-    this.prevDot = null;
-    
-    // Global brush settings packaged neatly
-    this.brushColor = "white";
-    this.brushSize = 2;
+    this.currentStroke = null; // Tracks the active mouse stroke
   }
 
   setMode(modeString) {
-    if (this.modes[modeString]) {
-      this.currentMode = modeString;
-    }
+    if (this.modes[modeString]) this.currentMode = modeString;
   }
 
-  resetStroke() {
-    this.prevDot = null;
+  // Called immediately on mousedown to start a new coordinate group
+  startStroke(activeLayer, mouseState) {
+    if (!activeLayer) return;
+
+    this.currentStroke = {
+      mode: this.currentMode,
+      points: [{ x: mouseState.x, y: mouseState.y }]
+    };
+
+    activeLayer.strokes.push(this.currentStroke);
   }
 
-  // Executes actual pixel mutations strictly on the hidden memory layer context
-  executeStroke(mouseState) {
-    this.ctx.fillStyle = this.brushColor;
-    this.ctx.strokeStyle = this.brushColor;
-    this.ctx.lineWidth = this.brushSize;
-    this.ctx.lineCap = "round";
-    this.ctx.lineJoin = "round";
+  // Called on mousemove to append new coordinate points to the active stroke
+  continueStroke(mouseState) {
+    if (!this.currentStroke) return;
 
     if (this.currentMode === this.modes.DOTTED) {
-      this.ctx.beginPath();
-      this.ctx.arc(mouseState.x, mouseState.y, this.brushSize, 0, Math.PI * 2);
-      this.ctx.fill();
+      this.currentStroke.points.push({ x: mouseState.x, y: mouseState.y });
     } 
     else if (this.currentMode === this.modes.LINED) {
-      this.ctx.beginPath();
-      if (this.prevDot) {
-        this.ctx.moveTo(this.prevDot.x, this.prevDot.y);
-        this.ctx.lineTo(mouseState.x, mouseState.y);
-        this.ctx.stroke();
-        this.prevDot.x = mouseState.x;
-        this.prevDot.y = mouseState.y;
-      } else {
-        this.prevDot = { x: mouseState.x, y: mouseState.y };
-      }
+      this.currentStroke.points.push({ x: mouseState.x, y: mouseState.y });
     }
+  }
+
+  // Called on mouseup
+  resetStroke() {
+    this.currentStroke = null;
   }
 }

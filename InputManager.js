@@ -4,10 +4,10 @@ export default class InputManager {
     this.canvas = canvasElement;
     this.mouse = { x: 0, y: 0, isDown: false };
     
-    // Developer callback interfaces hook directly into main runtime updates
     this.onDown = null;
     this.onMove = null;
     this.onUp = null;
+    this.onPan = null; // NEW: Hook for trackpad panning gestures
 
     this.bindEvents();
   }
@@ -24,14 +24,24 @@ export default class InputManager {
       if (this.onMove) this.onMove(this.mouse);
     });
 
-    // Binding to window ensures stroke releases tracking even if mouse leaves window boundaries
     window.addEventListener("mouseup", () => {
       this.mouse.isDown = false;
       if (this.onUp) this.onUp(this.mouse);
     });
+
+    // NEW: Capture two-finger trackpad movement swipes
+    this.canvas.addEventListener("wheel", (e) => {
+      e.preventDefault(); // Stop the browser page from scrolling up/down
+      
+      if (this.onPan) {
+        this.onPan({
+          deltaX: e.deltaX,
+          deltaY: e.deltaY
+        });
+      }
+    }, { passive: false }); // Explicitly allow preventDefault()
   }
 
-  // Converts native browser viewport client coordinates safely into normalized canvas positions
   updateCoordinates(event) {
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = event.clientX - rect.left;

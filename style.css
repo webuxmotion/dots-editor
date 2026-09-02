@@ -17,3 +17,76 @@ button.is-active {
   outline: 3px solid #007bff; 
   border-radius: 4px;
 }
+
+.layers-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 240px;
+  background: rgba(30, 30, 30, 0.9);
+  color: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  font-family: sans-serif;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 100;
+}
+.layers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+}
+.layers-header h3 { margin: 0; font-size: 14px; }
+#add-layer-btn {
+  background: #007bff;
+  border: none;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+#layers-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #2a2a2a;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.layer-item.is-active {
+  border-color: #007bff;
+  background: #333;
+}
+.layer-name { flex-grow: 1; font-size: 13px; }
+.layer-toggle, .layer-delete {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 14px;
+}
+.layer-toggle:hover { color: #fff; }
+.layer-delete:hover { color: #ff4d4d; }
+.layer-color-input {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+  padding: 0;
+}

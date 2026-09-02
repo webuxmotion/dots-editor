@@ -1,6 +1,6 @@
 // crop-manager/ExportService.js
 export default class ExportService {
-  static saveCrop(drawingCanvas, cropRect) {
+  static saveCrop(layerManager, cropRect) {
     const dpr = window.devicePixelRatio || 1;
     const tempCanvas = document.createElement("canvas");
 
@@ -8,17 +8,13 @@ export default class ExportService {
     tempCanvas.height = cropRect.height * dpr;
     const tempCtx = tempCanvas.getContext("2d");
 
-    tempCtx.drawImage(
-      drawingCanvas,
-      cropRect.x * dpr,
-      cropRect.y * dpr,
-      cropRect.width * dpr,
-      cropRect.height * dpr,
-      0,
-      0,
-      cropRect.width * dpr,
-      cropRect.height * dpr
-    );
+    tempCtx.scale(dpr, dpr);
+    
+    // Shift context window to match our clipping box alignment values
+    tempCtx.translate(-cropRect.x, -cropRect.y);
+
+    // Redraw the entire path vectors strictly inside our temporary crop boundary viewport
+    layerManager.compositeLayers(tempCtx);
 
     const imageUrl = tempCanvas.toDataURL("image/png");
     const downloadLink = document.createElement("a");
