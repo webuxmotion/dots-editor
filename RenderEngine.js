@@ -6,7 +6,7 @@ export class RenderEngine {
 
   render(app, systems) {
     const { ctx } = this;
-    const { viewport, layers, cropper } = systems;
+    const { viewport, layers } = systems;
 
     ctx.clearRect(0, 0, app.width, app.height);
 
@@ -14,7 +14,6 @@ export class RenderEngine {
     viewport.applyTransform(ctx);
 
     layers.compositeLayers(ctx);
-    cropper.draw(ctx);
 
     ctx.restore();
   }

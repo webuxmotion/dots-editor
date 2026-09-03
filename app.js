@@ -2,7 +2,9 @@ import { initCanvasResize } from "./canvasResizer.js";
 import { setupInputInterceptors } from "./interactionManager.js";
 import { bootstrapSystems } from "./AppRegistry.js";
 import { RenderEngine } from "./RenderEngine.js";
+
 import { initZoomModule } from "./modules/zoom/index.js";
+import { initCropModule } from "./modules/crop/index.js";
 
 class DrawingApp {
   constructor() {
@@ -22,12 +24,12 @@ class DrawingApp {
     this.layers = systems.layers;
     this.drawer = systems.drawer;
     this.input = systems.input;
-    this.cropper = systems.cropper;
 
     this.resizeCanvas();
     setupInputInterceptors(this);
 
     initZoomModule(this);
+    initCropModule(this);
 
     this.renderer.startLoop(() => this.update());
   }
