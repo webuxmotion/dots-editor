@@ -35,7 +35,10 @@ export default class ZoomStatus {
   }
 
   // Composites the minimalist dark glass badge wrapper and alphanumeric string elements
-  draw(ctx, canvasWidth, currentZoom) {
+  draw(ctx, canvasWidth, viewport) {
+    // Structural Safety Guard: Self-manage visibility conditions internally
+    if (!viewport || !viewport.isZoomed) return;
+
     this.updatePosition(canvasWidth);
 
     ctx.save();
@@ -54,7 +57,7 @@ export default class ZoomStatus {
 
     // 2. Format and render the Zoom Percentage Metric String
     ctx.textBaseline = "middle";
-    const percentageText = `${Math.round(currentZoom * 100)}%`;
+    const percentageText = `${Math.round(viewport.zoom * 100)}%`; // Read zoom from viewport
     
     ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
     ctx.font = "600 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";

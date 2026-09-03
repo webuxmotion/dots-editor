@@ -1,129 +1,46 @@
-// app.js
-import ColorPicker from "./ColorPicker.js";
-import CropManager from "./crop-manager/index.js";
-import DrawEngine from "./DrawEngine.js";
-import InputManager from "./InputManager.js";
-import LayerManager from "./LayerManager.js";
-import ZoomStatus from "./crop-manager/ZoomStatus.js";
-import Viewport from "./Viewport.js";
-import LayersUI from "./LayersUI.js";
-import ToolbarUI from "./ToolbarUI.js"; // Import your new toolbar manager
+import { initCanvasResize } from "./canvasResizer.js";
+import { setupInputInterceptors } from "./interactionManager.js";
+import { bootstrapSystems } from "./AppRegistry.js";
+import { RenderEngine } from "./RenderEngine.js";
 
 class DrawingApp {
   constructor() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
 
-    // 1. Initialise Dom Graphics Views
+    // 1. Initialise Dom Graphics Contexts
     this.canvas = document.getElementById("canvas");
     this.ctx = this.canvas.getContext("2d");
 
-    // 2. Instantiate Decoupled Processing Systems
-    this.viewport = new Viewport();
-    this.layers = new LayerManager(this.width, this.height);
-    this.drawer = new DrawEngine();
-    this.input = new InputManager(this.canvas);
-    this.cropper = new CropManager(this.canvas, this.layers);
-    this.zoomStatus = new ZoomStatus();
+    // 2. Component Initialization & Rendering Infrastructure
+    this.renderer = new RenderEngine(this.canvas, this.ctx);
+    
+    // Boot up all systems dynamically via registry pipeline
+    const { systems, ui } = bootstrapSystems(this);
+    this.systems = systems;
+    this.ui = ui;
 
-    // 3. Connect User Interface Layer Wrappers
-    new LayersUI(this.layers);
-    new ToolbarUI(this.drawer, this.layers, this.cropper);
-    new ColorPicker("#color");
+    // Direct object references mirror legacy mapping setups for interactionManager backward safety
+    this.viewport = systems.viewport;
+    this.layers = systems.layers;
+    this.drawer = systems.drawer;
+    this.input = systems.input;
+    this.cropper = systems.cropper;
+    this.zoomStatus = systems.zoomStatus;
 
-    this.initCanvasResize();
-    this.setupInputInterceptors();
+    // 3. Kick off window listeners and active graphics loop cycles
+    this.resizeCanvas();
+    setupInputInterceptors(this);
 
-    requestAnimationFrame((time) => this.loop(time));
+    this.renderer.startLoop(() => this.update());
   }
 
-  initCanvasResize() {
-    const dpr = window.devicePixelRatio || 1;
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-
-    this.canvas.style.width = `${this.width}px`;
-    this.canvas.style.height = `${this.height}px`;
-    this.canvas.width = this.width * dpr;
-    this.canvas.height = this.height * dpr;
-
-    this.ctx.scale(dpr, dpr);
-    this.layers.resizeAllLayers(this.width, this.height);
+  resizeCanvas() {
+    return initCanvasResize(this.canvas, this.ctx, this.systems.layers);
   }
 
-  setupInputInterceptors() {
-    window.addEventListener("resize", () => this.initCanvasResize());
-
-    this.input.onDown = (screenMouse) => {
-      if (this.viewport.isZoomed) {
-        const hitZoomUI = this.zoomStatus.checkHit(screenMouse.x, screenMouse.y, this.width, () => {
-          this.viewport.resetToCenter(this.width, this.height);
-        });
-        if (hitZoomUI) return;
-      }
-
-      const virtualMouse = this.viewport.toVirtual(screenMouse.x, screenMouse.y);
-      const hitUINode = this.cropper.checkHit(virtualMouse.x, virtualMouse.y);
-
-      if (!hitUINode) {
-        const activeLayer = this.layers.getActiveLayer();
-        if (activeLayer && activeLayer.visible) {
-          this.drawer.brushColor = activeLayer.color;
-          this.drawer.startStroke(activeLayer, virtualMouse);
-        }
-      }
-    };
-
-    this.input.onMove = (screenMouse) => {
-      const virtualMouse = this.viewport.toVirtual(screenMouse.x, screenMouse.y);
-
-      if (this.cropper.isDragging || this.cropper.isResizing) {
-        this.cropper.handleMove(virtualMouse.x, virtualMouse.y);
-        return;
-      }
-
-      if (screenMouse.isDown) {
-        const activeLayer = this.layers.getActiveLayer();
-        if (activeLayer && activeLayer.visible) {
-          this.drawer.brushColor = activeLayer.color;
-          this.drawer.continueStroke(virtualMouse);
-        }
-      }
-    };
-
-    this.input.onUp = () => {
-      this.cropper.stopDragging();
-      this.drawer.resetStroke();
-    };
-
-    this.input.onPan = (deltas) => {
-      this.viewport.addPan(deltas.deltaX, deltas.deltaY);
-    };
-
-    this.input.onZoom = (zoomData) => {
-      this.viewport.executeZoom(zoomData);
-    };
-  }
-
-  draw() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
-
-    this.ctx.save();
-    this.viewport.applyTransform(this.ctx);
-
-    this.layers.compositeLayers(this.ctx);
-    this.cropper.draw(this.ctx);
-
-    this.ctx.restore();
-
-    if (this.viewport.isZoomed) {
-      this.zoomStatus.draw(this.ctx, this.width, this.viewport.zoom);
-    }
-  }
-
-  loop(time) {
-    this.draw();
-    requestAnimationFrame((t) => this.loop(t));
+  update() {
+    this.renderer.render(this, this.systems);
   }
 }
 
