@@ -65,7 +65,6 @@ export default class LayerManager {
     this.baseHeight = height;
   }
 
-  // FIXED: Added a scale parameter defaulting to 1 to ensure lines scale proportionally during high-res crops
   compositeLayers(targetCtx, scale = 1) {
     // Traverse backwards to preserve stack order (bottom layers draw first)
     for (let i = this.layers.length - 1; i >= 0; i--) {

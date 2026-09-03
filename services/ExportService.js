@@ -1,21 +1,21 @@
 export default class ExportService {
-  static saveCrop(layerManager, cropRect) {
+  static saveRegion(layerManager, bounds) {
     const dpr = window.devicePixelRatio || 1;
     const tempCanvas = document.createElement("canvas");
 
-    tempCanvas.width = cropRect.width * dpr;
-    tempCanvas.height = cropRect.height * dpr;
+    tempCanvas.width = bounds.width * dpr;
+    tempCanvas.height = bounds.height * dpr;
     const tempCtx = tempCanvas.getContext("2d");
 
     tempCtx.scale(dpr, dpr);
-    tempCtx.translate(-cropRect.x, -cropRect.y);
+    tempCtx.translate(-bounds.x, -bounds.y);
 
     layerManager.compositeLayers(tempCtx, dpr);
 
     const imageUrl = tempCanvas.toDataURL("image/png");
     const downloadLink = document.createElement("a");
     downloadLink.href = imageUrl;
-    downloadLink.download = "canvas-crop.png";
+    downloadLink.download = "canvas-export.png";
     downloadLink.click();
   }
 }

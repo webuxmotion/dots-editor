@@ -15,7 +15,7 @@ export function initCropModule(app) {
   const saveBtn = document.getElementById("crop-and-save");
   if (saveBtn) {
     saveBtn.addEventListener("click", () => {
-      ExportService.saveCrop(app.layers, cropper.cropRect);
+      ExportService.saveRegion(app.layers, cropper.cropRect);
     });
   }
 
