@@ -1,10 +1,8 @@
-// LayersUI.js
 export default class LayersUI {
   constructor(layerManager) {
     this.layers = layerManager;
     this.listContainer = document.getElementById("layers-list");
     this.addBtn = document.getElementById("add-layer-btn");
-
     this.init();
   }
 
@@ -17,7 +15,6 @@ export default class LayersUI {
       if (!this.listContainer) return;
       const currentItems = this.listContainer.querySelectorAll(".layer-item");
 
-      // Patch DOM parameters smoothly if length checks match
       if (currentItems.length === layerArray.length) {
         layerArray.forEach((layer, idx) => {
           const li = currentItems[idx];
@@ -40,7 +37,6 @@ export default class LayersUI {
         return;
       }
 
-      // Rebuild configuration states if items count varies
       this.listContainer.innerHTML = "";
 
       layerArray.forEach((layer, idx) => {
@@ -50,9 +46,8 @@ export default class LayersUI {
 
         li.addEventListener("click", () => this.layers.setActiveLayer(idx));
 
-        // 1. Color Picker Circle Container
         const colorWrapper = document.createElement("div");
-        colorWrapper.className = "color-picker-wrapper";
+        colorWrapper.className = "color-picker-circle-wrapper";
         colorWrapper.style.backgroundColor = layer.color;
 
         const colorInput = document.createElement("input");
@@ -69,16 +64,13 @@ export default class LayersUI {
 
         colorWrapper.appendChild(colorInput);
 
-        // 2. Layer Index Number Badge
         const badge = document.createElement("div");
         badge.className = "layer-badge";
         badge.textContent = `L${layerArray.length - idx}`;
 
-        // 3. Floating Side Action Bar Container
         const actionsDiv = document.createElement("div");
         actionsDiv.className = "layer-actions";
 
-        // Visibility Toggle
         const toggleBtn = document.createElement("button");
         toggleBtn.className = `layer-toggle ${!layer.visible ? "is-hidden" : ""}`;
         toggleBtn.innerHTML = layer.visible ? "👁️" : "👁️‍🗨️";
@@ -88,7 +80,6 @@ export default class LayersUI {
           this.layers.toggleVisibility(idx);
         });
 
-        // Delete Trash Button
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "layer-delete";
         deleteBtn.innerHTML = "✕";

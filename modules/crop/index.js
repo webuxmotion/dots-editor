@@ -15,7 +15,10 @@ export function initCropModule(app) {
   const saveBtn = document.getElementById("crop-and-save");
   if (saveBtn) {
     saveBtn.addEventListener("click", () => {
-      ExportService.saveRegion(app.layers, cropper.cropRect);
+      ExportService.saveRegion(
+        (tempCtx, scale) => app.captureGraphics(tempCtx, scale),
+        cropper.cropRect
+      );
     });
   }
 

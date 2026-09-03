@@ -3,6 +3,7 @@ import { setupInputInterceptors } from "./interactionManager.js";
 import { bootstrapSystems } from "./AppRegistry.js";
 import { RenderEngine } from "./RenderEngine.js";
 
+import { initLayersModule } from "./modules/layers/index.js";
 import { initZoomModule } from "./modules/zoom/index.js";
 import { initCropModule } from "./modules/crop/index.js";
 
@@ -15,19 +16,22 @@ class DrawingApp {
     this.ctx = this.canvas.getContext("2d");
 
     this.renderer = new RenderEngine(this.canvas, this.ctx);
-    
+
     const { systems, ui } = bootstrapSystems(this);
     this.systems = systems;
     this.ui = ui;
+    this.captureGraphics = (targetCtx) => {
+      targetCtx.drawImage(this.canvas, 0, 0);
+    };
 
     this.viewport = systems.viewport;
-    this.layers = systems.layers;
     this.drawer = systems.drawer;
     this.input = systems.input;
 
     this.resizeCanvas();
     setupInputInterceptors(this);
 
+    initLayersModule(this);
     initZoomModule(this);
     initCropModule(this);
 
@@ -35,7 +39,7 @@ class DrawingApp {
   }
 
   resizeCanvas() {
-    return initCanvasResize(this.canvas, this.ctx, this.systems.layers);
+    return initCanvasResize(this.canvas, this.ctx);
   }
 
   update() {

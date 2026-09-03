@@ -5,26 +5,9 @@ export function setupInputInterceptors(app) {
     app.height = dimensions.height;
   });
 
-  app.input.onDown = (screenMouse) => {
-    const virtualMouse = app.viewport.toVirtual(screenMouse.x, screenMouse.y);
-    const activeLayer = app.layers.getActiveLayer();
-    if (activeLayer && activeLayer.visible) {
-      app.drawer.brushColor = activeLayer.color;
-      app.drawer.startStroke(activeLayer, virtualMouse);
-    }
-  };
+  app.input.onDown = (screenMouse) => {};
 
-  app.input.onMove = (screenMouse) => {
-    const virtualMouse = app.viewport.toVirtual(screenMouse.x, screenMouse.y);
-
-    if (screenMouse.isDown) {
-      const activeLayer = app.layers.getActiveLayer();
-      if (activeLayer && activeLayer.visible) {
-        app.drawer.brushColor = activeLayer.color;
-        app.drawer.continueStroke(virtualMouse);
-      }
-    }
-  };
+  app.input.onMove = (screenMouse) => {};
 
   app.input.onUp = () => {
     app.drawer.resetStroke();

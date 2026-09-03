@@ -1,5 +1,5 @@
 export default class ExportService {
-  static saveRegion(layerManager, bounds) {
+  static saveRegion(renderCallback, bounds) {
     const dpr = window.devicePixelRatio || 1;
     const tempCanvas = document.createElement("canvas");
 
@@ -10,7 +10,7 @@ export default class ExportService {
     tempCtx.scale(dpr, dpr);
     tempCtx.translate(-bounds.x, -bounds.y);
 
-    layerManager.compositeLayers(tempCtx, dpr);
+    renderCallback(tempCtx, dpr);
 
     const imageUrl = tempCanvas.toDataURL("image/png");
     const downloadLink = document.createElement("a");

@@ -1,7 +1,6 @@
 export default class ToolbarUI {
-  constructor(drawEngine, layerManager) {
+  constructor(drawEngine) {
     this.drawer = drawEngine;
-    this.layers = layerManager;
     this.container = document.getElementById("mode-container");
     this.init();
   }

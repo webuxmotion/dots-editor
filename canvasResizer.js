@@ -1,4 +1,4 @@
-export function initCanvasResize(canvas, ctx, layers) {
+export function initCanvasResize(canvas, ctx) {
   const dpr = window.devicePixelRatio || 1;
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -9,7 +9,6 @@ export function initCanvasResize(canvas, ctx, layers) {
   canvas.height = height * dpr;
 
   ctx.scale(dpr, dpr);
-  layers.resizeAllLayers(width, height);
 
   return { width, height };
 }

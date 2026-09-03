@@ -6,14 +6,12 @@ export class RenderEngine {
 
   render(app, systems) {
     const { ctx } = this;
-    const { viewport, layers } = systems;
+    const { viewport } = systems;
 
     ctx.clearRect(0, 0, app.width, app.height);
 
     ctx.save();
     viewport.applyTransform(ctx);
-
-    layers.compositeLayers(ctx);
 
     ctx.restore();
   }
