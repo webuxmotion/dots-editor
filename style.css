@@ -312,3 +312,47 @@ button.is-active {
 .layer-item.is-active .layer-badge {
   color: rgba(0, 123, 255, 0.9);
 }
+
+
+.action-buttons-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #242424;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.toolbar-btn:hover {
+  background-color: #323232;
+  color: #ffffff;
+}
+
+#crop-and-save {
+  background-color: #007bff;
+  color: #ffffff;
+  border-color: transparent;
+}
+
+#crop-and-save:hover {
+  background-color: #0056b3;
+}

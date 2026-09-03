@@ -12,20 +12,40 @@ export function initCropModule(app) {
   cropper.cropRect.x = (window.innerWidth / 2) - (defaultWidth / 2);
   cropper.cropRect.y = (window.innerHeight / 2) - (defaultHeight / 2);
 
+  const toggleBtn = document.getElementById("toggle-crop");
+  if (toggleBtn) {
+    const btnText = toggleBtn.querySelector("span");
+    toggleBtn.addEventListener("click", () => {
+      cropper.isVisible = !cropper.isVisible;
+      if (btnText) {
+        btnText.textContent = cropper.isVisible ? "Hide Crop Area" : "Show Crop Area";
+      }
+      if (!cropper.isVisible) {
+        cropper.showConfirmation = false;
+      }
+    });
+  }
+
   const saveBtn = document.getElementById("crop-and-save");
   if (saveBtn) {
+    const btnText = toggleBtn ? toggleBtn.querySelector("span") : null;
     saveBtn.addEventListener("click", () => {
-      ExportService.saveRegion(
-        (tempCtx, scale) => app.captureGraphics(tempCtx, scale),
-        cropper.cropRect
-      );
+      if (cropper.isVisible) {
+        ExportService.saveRegion(
+          (tempCtx, scale) => app.captureGraphics(tempCtx, scale),
+          cropper.cropRect
+        );
+      } else {
+        cropper.isVisible = true;
+        if (btnText) btnText.textContent = "Hide Crop Area";
+        cropper.showConfirmation = true;
+      }
     });
   }
 
   const originalRender = app.renderer.render;
   app.renderer.render = function (appInstance, systems) {
     originalRender.call(this, appInstance, systems);
-    
     const ctx = this.ctx;
     ctx.save();
     appInstance.viewport.applyTransform(ctx);
@@ -36,9 +56,33 @@ export function initCropModule(app) {
   const originalOnDown = app.input.onDown;
   app.input.onDown = (screenMouse) => {
     const virtualMouse = app.viewport.toVirtual(screenMouse.x, screenMouse.y);
-    const hitUINode = cropper.checkHit(virtualMouse.x, virtualMouse.y);
+    const hitResult = cropper.checkHit(virtualMouse.x, virtualMouse.y);
     
-    if (hitUINode) return;
+    if (hitResult === "MINIMIZE") {
+      cropper.isVisible = false;
+      cropper.showConfirmation = false;
+      if (toggleBtn) {
+        const btnText = toggleBtn.querySelector("span");
+        if (btnText) btnText.textContent = "Show Crop Area";
+      }
+      return;
+    }
+
+    if (hitResult === "OK") {
+      cropper.showConfirmation = false;
+      ExportService.saveRegion(
+        (tempCtx, scale) => app.captureGraphics(tempCtx, scale),
+        cropper.cropRect
+      );
+      return;
+    }
+    
+    if (hitResult === "CANCEL") {
+      cropper.showConfirmation = false;
+      return;
+    }
+
+    if (hitResult === true) return;
     if (originalOnDown) originalOnDown(screenMouse);
   };
 
@@ -46,7 +90,7 @@ export function initCropModule(app) {
   app.input.onMove = (screenMouse) => {
     const virtualMouse = app.viewport.toVirtual(screenMouse.x, screenMouse.y);
 
-    if (cropper.isDragging || cropper.isResizing) {
+    if (cropper.isVisible && (cropper.isDragging || cropper.isResizing)) {
       cropper.handleMove(virtualMouse.x, virtualMouse.y);
       return;
     }

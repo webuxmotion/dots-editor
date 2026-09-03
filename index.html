@@ -23,9 +23,24 @@
         <button id="DOTTED">Dotted</button>
         <button id="LINED">Lined</button>
       </span>
-      <span>
-        <button id="crop-and-save">Save</button>
-      </span>
+      <div class="action-buttons-container">
+        <button id="toggle-crop" class="toolbar-btn">
+          <svg
+            class="btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+            <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+          </svg>
+          <span>Show Crop Area</span>
+        </button>
+        <button id="crop-and-save" class="toolbar-btn">Export .png</button>
+      </div>
     </div>
     <canvas id="canvas"></canvas>
     <script type="module" src="./app.js"></script>
