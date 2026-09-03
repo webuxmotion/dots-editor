@@ -17,7 +17,6 @@ export default class LayerManager {
       visible: true,
       color: defaultColor 
     };
-
     this.layers.unshift(newLayer);
     this.activeLayerIndex = 0;
     this.triggerUIUpdate();
@@ -66,21 +65,21 @@ export default class LayerManager {
       const layer = this.layers[i];
       if (!layer.visible) continue;
 
-      const scaledWidth = 2 * scale;
-
       targetCtx.fillStyle = layer.color;
       targetCtx.strokeStyle = layer.color;
-      targetCtx.lineWidth = scaledWidth;
       targetCtx.lineCap = "round";
       targetCtx.lineJoin = "round";
 
       layer.strokes.forEach(stroke => {
         if (stroke.points.length === 0) return;
 
+        const dynamicWidth = (stroke.size || 2) * scale;
+        targetCtx.lineWidth = dynamicWidth;
+
         if (stroke.mode === "DOTTED") {
           stroke.points.forEach(pt => {
             targetCtx.beginPath();
-            targetCtx.arc(pt.x, pt.y, scaledWidth, 0, Math.PI * 2);
+            targetCtx.arc(pt.x, pt.y, dynamicWidth / 2, 0, Math.PI * 2);
             targetCtx.fill();
           });
         } 

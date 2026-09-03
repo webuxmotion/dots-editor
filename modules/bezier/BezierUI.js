@@ -5,7 +5,7 @@ export default class BezierUI {
     ctx.save();
     ctx.setLineDash([]);
     ctx.strokeStyle = brushColor || "#000000";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = ctx.lineWidth || 3;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 

@@ -5,6 +5,7 @@ export default class DrawEngine {
       LINED: "LINED"
     };
     this.currentMode = this.modes.DOTTED;
+    this.brushSize = 2;
     this.currentStroke = null;
   }
 
@@ -12,9 +13,14 @@ export default class DrawEngine {
     if (this.modes[modeString]) this.currentMode = modeString;
   }
 
+  setBrushSize(size) {
+    this.brushSize = Math.max(1, Number(size));
+  }
+
   startStroke(mouseState) {
     this.currentStroke = {
       mode: this.currentMode,
+      size: this.brushSize,
       points: [{ x: mouseState.x, y: mouseState.y }]
     };
     return this.currentStroke;
@@ -22,7 +28,6 @@ export default class DrawEngine {
 
   continueStroke(mouseState) {
     if (!this.currentStroke) return null;
-    
     this.currentStroke.points.push({ x: mouseState.x, y: mouseState.y });
     return this.currentStroke;
   }

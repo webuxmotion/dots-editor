@@ -30,15 +30,18 @@ export function initBezierModule(app) {
   app.renderer.render = function (appInstance, systems) {
     originalRender.call(this, appInstance, systems);
     
-    const ctx = this.ctx;
-    ctx.save();
-    appInstance.viewport.applyTransform(ctx);
-    
-    const activeLayer = appInstance.layers ? appInstance.layers.getActiveLayer() : null;
-    const brushColor = activeLayer ? activeLayer.color : "#000000";
-    
-    ui.draw(ctx, state, brushColor, false);
-    ctx.restore();
+    if (app.drawer.currentMode === "BEZIER") {
+      const ctx = this.ctx;
+      ctx.save();
+      appInstance.viewport.applyTransform(ctx);
+      
+      const activeLayer = appInstance.layers ? appInstance.layers.getActiveLayer() : null;
+      const brushColor = activeLayer ? activeLayer.color : "#000000";
+      
+      ctx.lineWidth = app.drawer.brushSize || 2;
+      ui.draw(ctx, state, brushColor, false);
+      ctx.restore();
+    }
   };
 
   const originalCapture = app.captureGraphics;
@@ -48,6 +51,7 @@ export function initBezierModule(app) {
     const activeLayer = app.layers ? app.layers.getActiveLayer() : null;
     const brushColor = activeLayer ? activeLayer.color : "#000000";
     
+    targetCtx.lineWidth = (app.drawer.brushSize || 2) * scale;
     ui.draw(targetCtx, state, brushColor, true);
   };
 
