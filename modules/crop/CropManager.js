@@ -46,7 +46,6 @@ export default class CropManager {
       if (mouseX >= cancelBtnX && mouseX <= cancelBtnX + this.btnWidth && mouseY >= btnY && mouseY <= btnY + this.btnHeight) {
         return "CANCEL";
       }
-      return true;
     }
 
     const dragBoxX = this.cropRect.x;
@@ -72,6 +71,7 @@ export default class CropManager {
       mouseY <= resizeY + this.resizeHandleSize
     ) {
       this.isResizing = true;
+      this.showConfirmation = false;
       return true;
     }
 
@@ -82,6 +82,7 @@ export default class CropManager {
       mouseY <= dragBoxY + this.dragBoxSize
     ) {
       this.isDragging = true;
+      this.showConfirmation = false;
       this.dragOffset.x = mouseX - this.cropRect.x;
       this.dragOffset.y = mouseY - this.cropRect.y;
       return true;

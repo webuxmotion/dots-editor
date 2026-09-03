@@ -6,6 +6,7 @@ import { RenderEngine } from "./RenderEngine.js";
 import { initLayersModule } from "./modules/layers/index.js";
 import { initZoomModule } from "./modules/zoom/index.js";
 import { initCropModule } from "./modules/crop/index.js";
+import { initBezierModule } from "./modules/bezier/index.js";
 
 class DrawingApp {
   constructor() {
@@ -34,6 +35,7 @@ class DrawingApp {
     initLayersModule(this);
     initZoomModule(this);
     initCropModule(this);
+    initBezierModule(this);
 
     this.renderer.startLoop(() => this.update());
   }

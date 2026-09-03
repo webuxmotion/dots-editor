@@ -4,6 +4,7 @@ import ExportService from "../../services/ExportService.js";
 export function initCropModule(app) {
   const cropper = new CropManager(app.canvas, app.canvas);
   app.cropper = cropper;
+  let hadConfirmationBeforeDrag = false;
 
   const defaultWidth = 500;
   const defaultHeight = 500;
@@ -56,6 +57,7 @@ export function initCropModule(app) {
   const originalOnDown = app.input.onDown;
   app.input.onDown = (screenMouse) => {
     const virtualMouse = app.viewport.toVirtual(screenMouse.x, screenMouse.y);
+    hadConfirmationBeforeDrag = cropper.showConfirmation;
     const hitResult = cropper.checkHit(virtualMouse.x, virtualMouse.y);
     
     if (hitResult === "MINIMIZE") {
@@ -99,6 +101,11 @@ export function initCropModule(app) {
 
   const originalOnUp = app.input.onUp;
   app.input.onUp = () => {
+    if (cropper.isVisible && (cropper.isDragging || cropper.isResizing)) {
+      if (hadConfirmationBeforeDrag) {
+        cropper.showConfirmation = true;
+      }
+    }
     cropper.stopDragging();
     if (originalOnUp) originalOnUp();
   };
